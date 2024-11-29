@@ -19,6 +19,7 @@ export function SelectEl({
   onSelectCountry: (country: any) => void;
 }) {
   const [modalVisible, setModalVisible] = useState(false);
+  const [country, setCountry] = useState(countries[0]);
   const openCountryList = () => {
     setModalVisible(true);
   };
@@ -26,6 +27,7 @@ export function SelectEl({
   const handleSelectCountry = (country: any) => {
     onSelectCountry(country);
     setModalVisible(false);
+    setCountry(country);
   };
 
   const renderCountryItem = ({item}: any) => (
@@ -45,9 +47,11 @@ export function SelectEl({
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={{alignSelf: 'center', marginBottom: 5}}
+        style={{flexDirection: 'row', alignItems: 'center'}}
         onPress={openCountryList}>
-        <FontAwesome6Icon name="sort-down" size={15} color="black" />
+        <Image style={styles.image} source={country.flag} />
+        <Text style={styles.text}>{country.code}</Text>
+        <FontAwesome6Icon name="sort-down" size={15} color="#161A1D" />
       </TouchableOpacity>
 
       <Modal
@@ -96,7 +100,8 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 20,
-    marginLeft: 5,
+    color: '#161A1D',
+    marginHorizontal: 5,
   },
   textContainer: {
     flexDirection: 'row',
@@ -161,10 +166,11 @@ const styles = StyleSheet.create({
   countryName: {
     fontSize: 16,
     fontWeight: '500',
+    color: '#161A1D',
   },
   countryCode: {
     fontSize: 14,
-    color: '#666',
+    color: '#161A1D',
     marginTop: 2,
   },
 });

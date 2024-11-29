@@ -14,7 +14,6 @@ export const fetchRestuarentNearBy = createAsyncThunk(
     {rejectWithValue},
   ) => {
     try {
-      // console.log(lat, long, 'lat long');
       const response = await fetch(
         apiConfig.GET_ALL_RESTUARENTS_NEAR_BY_URL +
           `lat=${Number(lat)}&long=${Number(long)}`,
@@ -30,7 +29,6 @@ export const fetchRestuarentNearBy = createAsyncThunk(
         Alert.alert('Error', data);
         return rejectWithValue(data.error);
       }
-      console.log(data, 'nearby');
       return data;
     } catch (error: any) {
       Alert.alert('Error', error.message);

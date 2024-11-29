@@ -67,11 +67,11 @@ const LocationPermissionScreen = ({
           JSON.stringify({lat: latitude, long: longitude}),
         );
         dispatch(setCoordinates({lat: latitude, long: longitude}));
-        navigation.replace('BottomTabs');
+        // navigation.replace('BottomTabs');
       },
       error => {
-        Alert.alert('Error', 'Unable to fetch location. ' + error.message);
         console.error('Geolocation error:', error);
+        Alert.alert('Error', `Unable to fetch location. ${error.message}`);
       },
       {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
     );

@@ -19,28 +19,30 @@ import {OtpInput} from 'react-native-otp-entry';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import {
   OtpVerificationScreenNavigationProp,
-  OnBoardingScreenRouteProp,
+  OtpVerificationScreenRouteProp,
 } from '../types/navigationProps';
 import apiConfig from '../config/apiConfig';
 
 interface Props {
-  route: {
-    params: {
-      otpData: {
-        country_code: string;
-        mobile_no: string;
-        otp: string;
-        email: string;
-        name: string;
-      };
+  params: {
+    otpData: {
+      country_code: string;
+      mobile_no: string;
+      otp: string;
+      email?: string;
+      name?: string;
     };
   };
-  navigation: OtpVerificationScreenNavigationProp;
 }
 
-export default function OtpVerification({route, navigation}: any) {
+export default function OtpVerification({
+  route,
+  navigation,
+}: {
+  route: any;
+  navigation: OtpVerificationScreenNavigationProp;
+}) {
   const [otp, setOtp] = useState<string | null>('');
-  console.log(route, 'params');
 
   const handleVerifyOtp = async () => {
     try {
@@ -57,12 +59,10 @@ export default function OtpVerification({route, navigation}: any) {
       });
       if (response.ok) {
         const data = await response.json();
-        console.log(data, 'data');
         Alert.alert('success', data.data.message);
         navigation.navigate('SignInScreen');
       } else {
         const responseData = await response.json();
-        console.log(responseData);
         Alert.alert('error', responseData.error.error);
       }
     } catch (error) {
@@ -89,6 +89,8 @@ export default function OtpVerification({route, navigation}: any) {
           country_code: route.params.otpData.country_code,
           mobile_no: route.params.otpData.mobile_no,
           otp: data.data.otp,
+          email: route.params.otpData.email as string,
+          name: route.params.otpData.name as string,
         };
         navigation.navigate('OtpVerification', {
           otpData,

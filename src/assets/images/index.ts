@@ -20,6 +20,15 @@ const salver = require('../images/salver.png');
 const burgerbestchoice = require('../images/burgerbestchoice.png');
 const pizzabestchoice = require('../images/pizzabestchoice.png');
 const location = require('../images/location.png');
+const leftArrow = require('../images/keyboardLeftArrow.png');
+const profilelogo = require('../images/profilelogo.png');
+const shoppingBag = require('../images/shopping-bag.png');
+const favouriteslogo = require('../images/favouriteslogo.png');
+const ceoImg = require('../images/ceo.png');
+const chefImg = require('../images/chef.png');
+const bstoffer1 = require('../images/bstoffer1.png');
+const bstoffer2 = require('../images/bstoffer2.png');
+const bstoffer3 = require('../images/bstoffer3.png');
 
 export const images = {
   splashScreenBgImage,
@@ -44,4 +53,13 @@ export const images = {
   burgerbestchoice,
   pizzabestchoice,
   location,
+  leftArrow,
+  profilelogo,
+  shoppingBag,
+  favouriteslogo,
+  ceoImg,
+  chefImg,
+  bstoffer1,
+  bstoffer2,
+  bstoffer3,
 };

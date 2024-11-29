@@ -25,81 +25,53 @@ import apiConfig from '../config/apiConfig';
 import countries from '../utils/Constants';
 import {loginValidator} from '../validations/userValidations';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {RootState} from '../redux/store';
+import {AppDispatch, RootState} from '../redux/store';
 import {useDispatch, useSelector} from 'react-redux';
-import {
-  setCountry,
-  setEmail,
-  setMobileNumber,
-  setPassword,
-  setRole,
-  setUserData,
-} from '../redux/AuthSlice';
+import {loginUser} from '../redux/AuthSlice';
 
 export default function SignInScreen({
   navigation,
 }: {
   navigation: SignInScreenNavigationProp;
 }) {
-  const authState = useSelector((state: RootState) => state.authSlice);
-  const dispatch = useDispatch();
+  const [country, setCountry] = useState(countries[0]);
+  const [mobile_no, setMobile_no] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('CUSTOMER');
 
+  const dispatch: AppDispatch = useDispatch();
   const handleLogin = async () => {
     const validators = loginValidator({
-      mobile_no: authState.mobileNumber,
-      password: authState.password,
-      role: authState.role,
-      country_code: authState.country.code,
+      mobile_no: mobile_no,
+      password: password,
+      role: role,
+      country_code: country.code,
     });
     if (validators.length > 0) {
       Alert.alert('error', validators[0].error);
       return;
     }
-    try {
-      const response = await fetch(apiConfig.LOGIN_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          mobile_no: authState.mobileNumber,
-          country_code: authState.country.code,
-          role: authState.role,
-          password: authState.password,
-        }),
-      });
-      const responseData = await response.json();
-      if (response.ok) {
-        console.log(responseData.data, 'data');
-        // setUserData(responseData.data);
-        dispatch(setUserData(responseData.data));
-        await AsyncStorage.setItem('user', JSON.stringify(responseData.data));
-        navigation.navigate('BottomTabs');
-      } else {
-        Alert.alert('Error', responseData.error.error);
-      }
-    } catch (error) {
-      console.log(error);
-      Alert.alert('Error', 'Something went wrong');
+    await dispatch(
+      loginUser({
+        mobile_no,
+        password,
+        role,
+        country_code: country.code,
+      }),
+    );
+
+    const token = useSelector((state: RootState) => state.authSlice.jwtToken);
+
+    if (token) {
+      navigation.navigate({name: 'BottomTabs', params: {screen: 'HomeScreen'}});
+    } else {
+      Alert.alert('Login failed', 'Invalid credentials');
     }
   };
 
-  const onChangeCountry = (selectedCountry: any) => {
-    // setCountry(selectedCountry);
-    dispatch(setCountry(selectedCountry));
-    console.log(selectedCountry, 'signInScreen');
-  };
-
-  const RenderSelectedCountry = () => (
-    <View style={styles.textContainer}>
-      {authState.country && (
-        <>
-          <Image style={styles.image} source={authState.country.flag} />
-          <Text style={styles.text}> {authState.country.code}</Text>
-        </>
-      )}
-    </View>
-  );
+  // const onChangeCountry = (selectedCountry: any) => {
+  // console.log(selectedCountry, 'signInScreen');
+  // };
 
   return (
     <View>
@@ -129,14 +101,14 @@ export default function SignInScreen({
         </Text>
       </View>
       <View style={styles.inputContainer}>
-        <RenderSelectedCountry />
-        <SelectEl countries={countries} onSelectCountry={onChangeCountry} />
+        <SelectEl countries={countries} onSelectCountry={setCountry} />
         <TextInput
           style={styles.input}
           placeholder="mobile no"
           keyboardType="phone-pad"
-          onChangeText={text => dispatch(setMobileNumber(text))}
-          value={authState.mobileNumber}
+          onChangeText={text => setMobile_no(text)}
+          value={mobile_no}
+          placeholderTextColor={colors.tertiary}
         />
         <FontAwesome6Icon
           style={{left: -20}}
@@ -152,8 +124,7 @@ export default function SignInScreen({
           type="alphanumeric"
           focusColor="green"
           focusStickBlinkingDuration={500}
-          onTextChange={text => dispatch(setPassword(text))}
-          onFilled={text => console.log(`password is ${text}`)}
+          onTextChange={text => setPassword(text)}
           secureTextEntry={true}
           theme={{
             containerStyle: styles.passCodeSubContainer,
@@ -167,24 +138,28 @@ export default function SignInScreen({
       </View>
       <View style={styles.radioButtonContainer}>
         <View style={styles.radioButton}>
-          <TouchableOpacity onPress={() => dispatch(setRole('CUSTOMER'))}>
+          <TouchableOpacity
+            onPress={() => setRole('CUSTOMER')}
+            style={{flexDirection: 'row', alignItems: 'center'}}>
             <Fontisto
               name="radio-btn-active"
               size={20}
-              color={authState.role === 'CUSTOMER' ? 'red' : 'grey'}
+              color={role === 'CUSTOMER' ? 'red' : 'grey'}
             />
+            <Text style={styles.radioButtonText}>Customer</Text>
           </TouchableOpacity>
-          <Text style={styles.radioButtonText}>Customer</Text>
         </View>
         <View style={styles.radioButton}>
-          <TouchableOpacity onPress={() => dispatch(setRole('SELLER'))}>
+          <TouchableOpacity
+            onPress={() => setRole('SELLER')}
+            style={{flexDirection: 'row', alignItems: 'center'}}>
             <Fontisto
               name="radio-btn-active"
               size={20}
-              color={authState.role === 'SELLER' ? 'red' : 'grey'}
+              color={role === 'SELLER' ? 'red' : 'grey'}
             />
+            <Text style={styles.radioButtonText}>Seller</Text>
           </TouchableOpacity>
-          <Text style={styles.radioButtonText}>Seller</Text>
         </View>
       </View>
       <View style={styles.bottomContainer}>
@@ -260,6 +235,7 @@ const styles = StyleSheet.create({
   },
   pinCodeText: {
     fontSize: 20,
+    color: colors.tertiary,
   },
   focusStick: {
     backgroundColor: 'green',
@@ -270,6 +246,7 @@ const styles = StyleSheet.create({
   passcodeText: {
     fontSize: 18,
     fontWeight: '600',
+    color: colors.tertiary,
   },
   forgotText: {
     alignSelf: 'flex-end',
@@ -279,7 +256,6 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   radioButtonContainer: {
-    // flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -287,7 +263,6 @@ const styles = StyleSheet.create({
     left: 20,
     width: 249,
     height: 50,
-    // backgroundColor: '#FFFFFF',
   },
   radioButton: {
     flexDirection: 'row',
@@ -297,6 +272,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontSize: 18,
     fontWeight: '600',
+    color: colors.tertiary,
   },
   bottomContainer: {
     flexDirection: 'column',

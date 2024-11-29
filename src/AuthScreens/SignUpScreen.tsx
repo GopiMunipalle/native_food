@@ -27,21 +27,6 @@ import Fontisto from 'react-native-vector-icons/Fontisto';
 import apiConfig from '../config/apiConfig';
 import {signUpValidator} from '../validations/userValidations';
 import OtpVerification from '../screens/OtpVerification';
-import {useDispatch, useSelector} from 'react-redux';
-import {RootState} from '../redux/store';
-import {
-  setCountry,
-  setEmail,
-  setAgreedToTerms,
-  setMobileNumber,
-  setName,
-  setPassword,
-  setRole,
-  setUserData,
-  setConfirmPassword,
-  setState,
-  setOtp,
-} from '../redux/AuthSlice';
 
 interface Country {
   code: string;
@@ -66,8 +51,18 @@ interface props {
 }
 
 export default function SignUpScreen({navigation}: props) {
-  const authState = useSelector((state: RootState) => state.authSlice);
-  const dispatch = useDispatch();
+  const [authState, setAuthState] = useState<SignUpFormData>({
+    name: '',
+    mobile_no: '',
+    email: '',
+    passcode: '',
+    confirmPasscode: '',
+    state: '',
+    agreedToTerms: false,
+    role: 'CUSTOMER',
+    otp: '',
+  });
+  const [country, setCountry] = useState<Country>(countries[0]);
 
   const fetchSendOtp = async () => {
     try {
@@ -77,13 +72,13 @@ export default function SignUpScreen({navigation}: props) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          mobile_no: authState.mobileNumber,
-          country_code: authState.country.code,
+          mobile_no: authState.mobile_no,
+          country_code: country.code,
         }),
       });
       if (response.ok) {
         const data = await response.json();
-        dispatch(setOtp(data.data.otp));
+        // dispatch(setOtp(data.data.otp));
         return data.data.otp;
       } else {
         const responseData = await response.json();
@@ -94,27 +89,16 @@ export default function SignUpScreen({navigation}: props) {
     }
   };
 
-  const RenderSelectedCountry: React.FC = () => (
-    <View style={styles.textContainer}>
-      {authState.country && (
-        <>
-          <Image style={styles.image} source={authState.country.flag} />
-          <Text style={styles.text}>{authState.country.code}</Text>
-        </>
-      )}
-    </View>
-  );
-
   const handleSubmit = async () => {
     try {
       const validationResponse = signUpValidator({
-        name: authState.name || '',
-        mobile_no: authState.mobileNumber || '',
-        email: authState.email || '',
-        password: authState.password || '',
-        confirmPassword: authState.confirmPassword || '',
+        name: authState.name,
+        mobile_no: authState.mobile_no,
+        email: authState.email,
+        password: authState.passcode,
+        confirmPassword: authState.confirmPasscode as string,
         state: authState.state || '',
-        country_code: authState.country.code,
+        country_code: country.code,
         role: authState.role,
       });
       if (validationResponse.length > 0) {
@@ -129,11 +113,11 @@ export default function SignUpScreen({navigation}: props) {
         },
         body: JSON.stringify({
           name: authState.name,
-          mobile_no: authState.mobileNumber,
+          mobile_no: authState.mobile_no,
           email: authState.email,
-          password: authState.password,
+          password: authState.passcode,
           state: authState.state,
-          country_code: authState.country.code,
+          country_code: country.code,
           role: authState.role,
         }),
       });
@@ -142,8 +126,8 @@ export default function SignUpScreen({navigation}: props) {
       if (response.ok) {
         const otp = await fetchSendOtp();
         const otpData = {
-          country_code: authState.country.code,
-          mobile_no: authState.mobileNumber,
+          country_code: country.code,
+          mobile_no: authState.mobile_no,
           otp: otp,
           email: authState.email as string,
           name: authState.name as string,
@@ -157,8 +141,8 @@ export default function SignUpScreen({navigation}: props) {
       ) {
         const otp = await fetchSendOtp();
         const otpData = {
-          country_code: authState.country.code,
-          mobile_no: authState.mobileNumber,
+          country_code: country.code,
+          mobile_no: authState.mobile_no,
           otp: otp,
           email: authState.email as string,
           name: authState.name as string,
@@ -195,14 +179,14 @@ export default function SignUpScreen({navigation}: props) {
           <TextInput
             placeholder="Name"
             style={styles.input}
-            onChangeText={text => dispatch(setName(text))}
+            onChangeText={text => setAuthState({...authState, name: text})}
             value={authState.name}
+            placeholderTextColor={colors.tertiary}
           />
           <FontAwesome6Icon name="user" size={24} color={colors.tertiary} />
         </View>
 
         <View style={styles.inputWrapper}>
-          <RenderSelectedCountry />
           <SelectEl
             countries={countries}
             onSelectCountry={(selectedCountry: Country) =>
@@ -213,8 +197,9 @@ export default function SignUpScreen({navigation}: props) {
             style={styles.input}
             placeholder="Mobile Number"
             keyboardType="phone-pad"
-            onChangeText={text => dispatch(setMobileNumber(text))}
-            value={authState.mobileNumber}
+            onChangeText={text => setAuthState({...authState, mobile_no: text})}
+            value={authState.mobile_no}
+            placeholderTextColor={colors.tertiary}
           />
           <FontAwesome6Icon name="phone" size={20} color={colors.tertiary} />
         </View>
@@ -225,8 +210,9 @@ export default function SignUpScreen({navigation}: props) {
             placeholder="Email Id"
             keyboardType="email-address"
             autoCapitalize="none"
-            onChangeText={text => dispatch(setEmail(text))}
+            onChangeText={text => setAuthState({...authState, email: text})}
             value={authState.email}
+            placeholderTextColor={colors.tertiary}
           />
           <MaterialCommunityIcons
             name="email"
@@ -242,7 +228,7 @@ export default function SignUpScreen({navigation}: props) {
             type="alphanumeric"
             focusColor={colors.tertiary}
             focusStickBlinkingDuration={500}
-            onTextChange={text => dispatch(setPassword(text))}
+            onTextChange={text => setAuthState({...authState, passcode: text})}
             secureTextEntry={true}
             theme={{
               containerStyle: styles.passCodeSubContainer,
@@ -258,7 +244,9 @@ export default function SignUpScreen({navigation}: props) {
             type="alphanumeric"
             focusColor={colors.tertiary}
             focusStickBlinkingDuration={500}
-            onTextChange={text => dispatch(setConfirmPassword(text))}
+            onTextChange={text =>
+              setAuthState({...authState, confirmPasscode: text})
+            }
             secureTextEntry={true}
             theme={{
               containerStyle: styles.passCodeSubContainer,
@@ -274,36 +262,45 @@ export default function SignUpScreen({navigation}: props) {
             options={states}
             placeholder="Select State"
             onChange={selectedState =>
-              dispatch(setState(selectedState as string))
+              setAuthState({...authState, state: selectedState})
             }
           />
         </View>
         <View style={styles.radioButtonContainer}>
           <View style={styles.radioButton}>
-            <TouchableOpacity onPress={() => dispatch(setRole('CUSTOMER'))}>
+            <TouchableOpacity
+              style={{flexDirection: 'row', alignItems: 'center'}}
+              onPress={() => setAuthState({...authState, role: 'CUSTOMER'})}>
               <Fontisto
                 name="radio-btn-active"
                 size={20}
                 color={authState.role === 'CUSTOMER' ? 'red' : 'grey'}
               />
+              <Text style={styles.radioButtonText}>Customer</Text>
             </TouchableOpacity>
-            <Text style={styles.radioButtonText}>Customer</Text>
           </View>
           <View style={styles.radioButton}>
-            <TouchableOpacity onPress={() => dispatch(setRole('SELLER'))}>
+            <TouchableOpacity
+              style={{flexDirection: 'row', alignItems: 'center'}}
+              onPress={() => setAuthState({...authState, role: 'SELLER'})}>
               <Fontisto
                 name="radio-btn-active"
                 size={20}
                 color={authState.role === 'SELLER' ? 'red' : 'grey'}
               />
+              <Text style={styles.radioButtonText}>Seller</Text>
             </TouchableOpacity>
-            <Text style={styles.radioButtonText}>Seller</Text>
           </View>
         </View>
         <View style={styles.termsContainer}>
           <CheckBox
             style={styles.checkbox}
-            onClick={() => dispatch(setAgreedToTerms(!authState.agreedToTerms))}
+            onClick={() =>
+              setAuthState({
+                ...authState,
+                agreedToTerms: !authState.agreedToTerms,
+              })
+            }
             rightTextView={
               <Text style={styles.checkboxText}>Agree Terms & Conditions</Text>
             }

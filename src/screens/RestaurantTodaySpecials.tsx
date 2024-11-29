@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React from 'react';
+import React, {useEffect} from 'react';
 import {colors} from '../colors';
 import {
   responsiveHeight,
@@ -19,14 +19,14 @@ import {RootState} from '../redux/store';
 import {TodaySpecial} from '../types/commonTypes';
 import apiConfig from '../config/apiConfig';
 
-export default function TodaySpecialsScreen({
+export default function RestaurantTodaySpecials({
   navigation,
+  route,
 }: {
   navigation: TodaySpecialsScreenNavigationProp;
+  route: any;
 }) {
-  const todaySpecials = useSelector(
-    (state: RootState) => state.todaySpecialSlice.todaySpecials,
-  );
+  const todaySpecials = route.params.todaySpecials;
 
   const renderTodaySpecials = ({item}: {item: TodaySpecial}) => {
     const handleTodaySpecialItem = (item: TodaySpecial) => {

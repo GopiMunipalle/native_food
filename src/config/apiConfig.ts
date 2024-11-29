@@ -1,4 +1,4 @@
-const baseUrl = 'http://10.10.0.219:3000';
+const baseUrl = 'localhost:3000';
 
 const apiConfig = {
   LOGIN_URL: `${baseUrl}/user/login`,
@@ -15,7 +15,15 @@ const apiConfig = {
   GET_ALL_BEST_CHOICE_URL: `${baseUrl}/bestchoice/best-choice`,
   GET_ALL_TODAY_SPECAILS_URL: `${baseUrl}/todayspecials`,
   GET_ALL_RESTUARENTS_NEAR_BY_URL: `${baseUrl}/business/nearby?`,
+  GET_BUSINESS_BY_ID_URL: `${baseUrl}/business/`,
   CREATE_ADDRESS_URL: `${baseUrl}/address/`,
+  NEAR_RESTAURANTS_OFFERS_URL: `${baseUrl}/business/nearby-offers`,
+  GET_ALL_BEST_OFFERS_URL: `${baseUrl}/bestoffers`,
+  ADD_TO_CART_URL: `${baseUrl}/cart`,
+  GET_ALL_CART_ITEMS_URL: `${baseUrl}/cart`,
+  UPDATE_CART_ITEM_URL: `${baseUrl}/cart`,
+  REMOVE_CART_ITEM_URL: `${baseUrl}/cart/remove/:productId`,
+  CREATE_CART_ORDER_URL: `${baseUrl}/cart/cartOrder`,
 };
 
 export default apiConfig;

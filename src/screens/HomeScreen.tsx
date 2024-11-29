@@ -3,13 +3,14 @@ import {
   FlatList,
   Image,
   ImageBackground,
+  ImageSourcePropType,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {images} from '../assets/images';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -32,11 +33,15 @@ import {
   BestChoice,
   TodaySpecial,
   RestuarentT,
+  BestOffer,
 } from '../types/commonTypes';
 import {fetchBestChoices} from '../redux/bestChoicesSlice';
 import {fetchTodaySpecials} from '../redux/todaySpecialSlice';
 import {fetchRestuarentNearBy} from '../redux/nearRestaurentSlice';
 import {HomeScreenNavigationProp} from '../types/navigationProps';
+import {StarRatingDisplay} from 'react-native-star-rating-widget';
+import {fetchBestOffers, OfferData} from '../redux/bestOffersSlice';
+import AntDesign from 'react-native-vector-icons/AntDesign';
 
 export default function HomeScreen({
   navigation,
@@ -45,6 +50,9 @@ export default function HomeScreen({
 }) {
   const categories = useSelector(
     (state: RootState) => state.categoriesSlice.categories,
+  );
+  const bestOffers = useSelector(
+    (state: RootState) => state.bestOfferSlice.bestOffers,
   );
   const bestChoices = useSelector(
     (state: RootState) => state.bestChoicesSlice.bestChoices,
@@ -59,6 +67,7 @@ export default function HomeScreen({
   const coordinates = useSelector(
     (state: RootState) => state.homeSlice.coordinates,
   );
+  const todaySpecialItems = [...todaySpecials].slice(0, 5);
   const dispatch: AppDispatch = useDispatch();
   const [user, setUser] = useState<{
     jwtToken: string;
@@ -68,7 +77,6 @@ export default function HomeScreen({
 
   useEffect(() => {
     const initializeData = async () => {
-      // await AsyncStorage.removeItem('user');
       // await AsyncStorage.removeItem('location');
       try {
         const userData = await AsyncStorage.getItem('user');
@@ -77,6 +85,7 @@ export default function HomeScreen({
           setUser(parsedUser);
           await Promise.all([
             dispatch(fetchAllCategories(parsedUser.jwtToken)),
+            dispatch(fetchBestOffers(parsedUser.jwtToken)),
             dispatch(fetchBestChoices(parsedUser.jwtToken)),
             dispatch(fetchTodaySpecials(parsedUser.jwtToken)),
             dispatch(
@@ -93,30 +102,72 @@ export default function HomeScreen({
         Alert.alert('Error', 'Failed to load initial data');
       }
     };
-
     initializeData();
   }, []);
 
-  const renderRestuarentNearBy = ({item}: {item: RestuarentT}) => {
-    console.log('item..................', item);
-    return (
-      <View>
-        <Image
-          source={{uri: `${apiConfig.GET_IMAGES_BY_ID}/${item.image}`}}
-          style={{
-            width: '100%',
-            height: 100,
-          }}
-        />
-        <Text>{item.businessName}</Text>
-        <Text>{item.distance}</Text>
-        <Text>{item.ownerName}</Text>
-      </View>
-    );
+  const handleRestaurantNearby = ({
+    id,
+    distance,
+    rating,
+  }: {
+    id: string;
+    distance: number;
+    rating: number;
+  }) => {
+    navigation.navigate('RestaurantNearItemScreen', {
+      id: id,
+      distance: distance,
+      rating: rating,
+    });
   };
+
+  const renderRestuarentNearBy = ({item}: {item: RestuarentT}) => (
+    <TouchableOpacity
+      style={styles.restuarentNearByItem}
+      onPress={() =>
+        handleRestaurantNearby({
+          id: item._id,
+          distance: item.distance,
+          rating: Number(item.averageRating),
+        })
+      }>
+      <Image
+        source={{uri: `${apiConfig.GET_IMAGES_BY_ID}/${item.image}`}}
+        style={styles.restuarentImage}
+      />
+      <View style={styles.restuarentDetailsContainer}>
+        <Text style={styles.restuarentName}>{item.businessName}</Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: 7,
+          }}>
+          <Entypo name="location-pin" size={17} color={colors.primary} />
+          <Text style={styles.distance}>
+            {(item.distance / 1000).toFixed(2)}km
+          </Text>
+          <StarRatingDisplay
+            starStyle={{width: 7}}
+            rating={Number(item.averageRating)}
+            starSize={17}
+            color="#FFC107"
+          />
+        </View>
+        <Text style={styles.restuarentAddress}>{item.businessName}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const handleTodaySpecialItem = (data: TodaySpecial) => {
+    navigation.navigate('ProductDetailScreen', {item: data});
+  };
+
   const renderTodaySpecials = ({item}: {item: TodaySpecial}) => {
     return (
-      <View style={styles.todaySpecialItem}>
+      <TouchableOpacity
+        style={styles.todaySpecialItem}
+        onPress={() => handleTodaySpecialItem(item)}>
         <Image
           source={{uri: `${apiConfig.GET_IMAGES_BY_ID}/${item.images[0]}`}}
           style={styles.image}
@@ -129,102 +180,57 @@ export default function HomeScreen({
           </View>
           <View style={styles.detailsSubContainer}>
             <Image source={images.salver} style={{height: 25, width: 25}} />
-            <Text style={styles.businessName}>
+            <Text style={styles.todaySpecialsbusinessName}>
               {item.businessId.businessName}
             </Text>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
   const renderBestChoices = ({item}: {item: BestChoice}) => {
     return (
-      <View style={[styles.bestChoiceItem, {backgroundColor: item.color}]}>
+      <View style={styles.bestChoiceItem}>
         <View
-          style={{
-            width: '100%',
-            height: '50%',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
+          style={[
+            styles.bestChoiceItemSubContainer,
+            {backgroundColor: item.color, shadowColor: item.color},
+          ]}>
           <Image
             source={{uri: `${apiConfig.GET_IMAGES_BY_ID}/${item.images[0]}`}}
-            style={{
-              height: '90%',
-              width: '90%',
-              resizeMode: 'contain',
-              borderRadius: 10,
-              marginBottom: 0,
-            }}
+            style={styles.bestChoicesImage}
           />
-
-          <View
-            style={{
-              width: '100%',
-              height: '50%',
-              alignItems: 'center',
-              paddingHorizontal: 10,
-              marginTop: 0,
-            }}>
-            <Text
-              style={[
-                styles.bestChoiceText,
-                {
-                  fontSize: 20,
-                  marginVertical: 5,
-                  fontWeight: '600',
-                  marginBottom: 10,
-                  marginTop: 0,
-                },
-              ]}>
-              {item.name}
-            </Text>
-            <Text
-              style={[
-                styles.bestChoicePriceText,
-                {
-                  fontSize: 18,
-                  marginBottom: 5,
-                },
-              ]}>
-              ₹{item.price}
-            </Text>
-            <Image source={images.salver} style={{height: 25, width: 25}} />
-            <Text
-              style={[
-                styles.bestChoiceText,
-                {
-                  fontSize: 18,
-                  color: colors.tertiary,
-                },
-              ]}>
-              {item.businessId.businessName}
-            </Text>
+          <Text style={styles.bestChoiceText}>{item.name}</Text>
+          <View style={styles.priceDetails}>
+            {item.discountPrice ? (
+              <>
+                <Text style={styles.bestChoicePriceText}>
+                  ₹{item.discountPrice}
+                </Text>
+                <Text
+                  style={[
+                    styles.bestChoicePriceText,
+                    {textDecorationLine: 'line-through'},
+                  ]}>
+                  ₹{item.price}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.bestChoicePriceText}>₹{item.price}</Text>
+            )}
           </View>
+          <Image
+            source={images.salver}
+            style={{height: 25, width: 25, top: -15}}
+          />
+          <Text style={styles.businessName}>
+            {item.businessId.businessName}
+          </Text>
+          <TouchableOpacity style={styles.bestChoicesItemIcon}>
+            <AntDesign name="plus" size={25} color={colors.tertiary} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            backgroundColor: colors.white,
-            borderRadius: 25,
-            bottom: -15,
-            alignSelf: 'center',
-            shadowColor: '#000000',
-            elevation: 5,
-            width: 40,
-            height: 40,
-            justifyContent: 'center',
-            alignItems: 'center',
-            shadowOffset: {
-              width: 2,
-              height: 2,
-            },
-            shadowOpacity: 0.26,
-            shadowRadius: 3.84,
-          }}>
-          <AntDesing name="plus" size={30} color={colors.tertiary} />
-        </TouchableOpacity>
       </View>
     );
   };
@@ -254,31 +260,24 @@ export default function HomeScreen({
     );
   };
 
-  const renderCarousel = ({
-    item,
-  }: {
-    item: {
-      id: number;
-      image: any;
-      title: string;
-      price: number;
-      discountPrice: number;
-      description: {firstPart: string; secondPart: string};
-    };
-  }) => {
+  const handleCarousel = (item: BestOffer) => {
+    navigation.navigate('offerCarouselScreen', {item});
+  };
+
+  const renderCarousel = ({item}: any) => {
     return (
       <TouchableOpacity
         style={styles.carouselItem}
-        onPress={() => console.log('clicked offer carousel')}>
+        onPress={() => handleCarousel(item.bestOffer)}>
         <ImageBackground
           style={{
             width: '100%',
             height: 170,
             flexDirection: 'column',
           }}
-          source={item.image}>
+          source={images.pizzabanner}>
           <View style={{marginTop: 20, marginLeft: 20}}>
-            <Text style={styles.carouselTitle}>{item.title}</Text>
+            <Text style={styles.carouselTitle}>{item.bestOffer.offerName}</Text>
             <View
               style={{
                 flexDirection: 'row',
@@ -293,7 +292,10 @@ export default function HomeScreen({
                   fontSize: 18,
                   fontFamily: 'Montserrat Alternates',
                 }}>
-                ${item.discountPrice}
+                $
+                {(item.bestOffer.productDetails[0] &&
+                  item.bestOffer.productDetails[0].price) ||
+                  150}
               </Text>
               <Text
                 style={{
@@ -303,7 +305,10 @@ export default function HomeScreen({
                   fontFamily: 'Montserrat Alternates',
                   textDecorationLine: 'line-through',
                 }}>
-                ${item.price}
+                $
+                {(item.bestOffer.productDetails[0] &&
+                  item.bestOffer.productDetails[0].discountPrice) ||
+                  100}
               </Text>
             </View>
             <View
@@ -323,7 +328,7 @@ export default function HomeScreen({
                   fontSize: 18,
                   fontFamily: 'Montserrat Alternates',
                 }}>
-                {item.description.firstPart}
+                {item.bestOffer.description.slice(0, 3)}
               </Text>
               <Text
                 style={{
@@ -332,7 +337,7 @@ export default function HomeScreen({
                   fontSize: 18,
                   fontFamily: 'Montserrat Alternates',
                 }}>
-                {item.description.secondPart}
+                {item.bestOffer.description.slice(3)}
               </Text>
             </View>
           </View>
@@ -344,12 +349,13 @@ export default function HomeScreen({
   const HeaderFrame = () => (
     <>
       <View style={styles.headerContainer}>
-        <View
+        <TouchableOpacity
           style={{
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
-          }}>
+          }}
+          onPress={() => navigation.navigate('ProfileScreen')}>
           <Image source={images.homePerson} />
           <View style={{flexDirection: 'column', alignItems: 'flex-start'}}>
             <Text
@@ -361,13 +367,21 @@ export default function HomeScreen({
               Hi, {user?.user.full_name}
             </Text>
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              <Entypo name="location-pin" size={15} />
-              <Text>{user?.user.id}</Text>
+              <Entypo
+                name="location-pin"
+                size={15}
+                style={{color: colors.lightGrey}}
+              />
+              <Text style={{color: colors.lightGrey}}>{user?.user.id}</Text>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity>
-          <MaterialIcons name="notifications-none" size={30} />
+          <MaterialIcons
+            name="notifications-none"
+            size={30}
+            style={{color: colors.tertiary}}
+          />
         </TouchableOpacity>
       </View>
     </>
@@ -392,7 +406,7 @@ export default function HomeScreen({
       <View style={styles.bestOffersContainer}>
         <Carousel
           layout={'default'}
-          data={offersBanners}
+          data={bestOffers}
           activeSlideAlignment="start"
           vertical={false}
           sliderWidth={responsiveWidth(100)}
@@ -401,7 +415,7 @@ export default function HomeScreen({
           onSnapToItem={index => setActiveSlide(index)}
         />
         <Pagination
-          dotsLength={offersBanners.length}
+          dotsLength={bestOffers.length}
           activeDotIndex={activeSlide}
           inactiveDotOpacity={0.4}
           inactiveDotScale={0.6}
@@ -415,17 +429,15 @@ export default function HomeScreen({
 
   const BestChoicesFrame = () => (
     <>
-      <View style={styles.bestChoicesContainer}>
-        <Text style={styles.bestChoicesText}>Best Choices</Text>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={bestChoices}
-          renderItem={renderBestChoices}
-          keyExtractor={item => item._id}
-          persistentScrollbar
-        />
-      </View>
+      <Text style={styles.bestChoicesText}>Best Choices</Text>
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        data={bestChoices}
+        renderItem={renderBestChoices}
+        keyExtractor={item => item._id}
+        persistentScrollbar
+      />
     </>
   );
 
@@ -461,7 +473,7 @@ export default function HomeScreen({
   const TodaySpecialsListFrame = () => (
     <View style={styles.todaySpecailContainer}>
       <FlatList
-        data={todaySpecials}
+        data={todaySpecialItems}
         renderItem={renderTodaySpecials}
         keyExtractor={item => item._id}
         horizontal={false}
@@ -477,6 +489,7 @@ export default function HomeScreen({
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
+          marginBottom: 10,
         }}>
         <Text style={styles.todaySpecailText}>Restaurant Nearby</Text>
         <TouchableOpacity
@@ -501,11 +514,12 @@ export default function HomeScreen({
     <>
       <View style={styles.restuarentNearByContainer}>
         <FlatList
+          style={{flexDirection: 'row'}}
           data={restuarentNearBy}
           renderItem={renderRestuarentNearBy}
           keyExtractor={item => item._id}
-          horizontal={false}
-          showsVerticalScrollIndicator={false}
+          horizontal={true}
+          showsHorizontalScrollIndicator={false}
         />
       </View>
     </>
@@ -553,7 +567,6 @@ const styles = StyleSheet.create({
     width: '90%',
   },
   categoryContainer: {
-    // flex: 1,
     paddingTop: 10,
     paddingBottom: 20,
   },
@@ -575,8 +588,7 @@ const styles = StyleSheet.create({
     width: 340,
     height: 170,
     borderRadius: 10,
-    // justifyContent: 'center',
-    // alignItems: 'center',
+    backgroundColor: '#212528',
   },
   carouselTitle: {
     width: 200,
@@ -606,43 +618,86 @@ const styles = StyleSheet.create({
     borderStyle: 'solid',
     borderRadius: 10,
   },
-  bestChoicesContainer: {
-    paddingLeft: 20,
-  },
   bestChoiceItem: {
+    marginTop: 20,
     flexDirection: 'column',
-    alignItems: 'center',
-    marginHorizontal: 8,
-    borderRadius: 15,
+    justifyContent: 'center',
+    marginHorizontal: 20,
     marginBottom: 20,
-    position: 'relative',
-    width: responsiveWidth(35),
-    height: responsiveHeight(30),
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 3,
-    overflow: 'visible',
+    width: 165,
+    height: 314,
+  },
+  bestChoiceItemSubContainer: {
+    height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: '#FFD3D3',
+  },
+  bestChoicesImage: {
+    height: '50%',
+    width: '100%',
+    resizeMode: 'contain',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    top: -30,
   },
   bestChoicesText: {
-    fontSize: 22,
-    color: colors.tertiary,
+    fontSize: 26,
     fontWeight: '600',
     fontFamily: 'Bai Jamjuree',
+    lineHeight: 40,
+    color: colors.tertiary,
+    marginLeft: 10,
   },
   bestChoiceText: {
+    top: -30,
     color: colors.tertiary,
     fontWeight: '500',
     textAlign: 'center',
+    fontSize: 20,
+    marginVertical: 5,
+    marginBottom: 10,
+  },
+  priceDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   bestChoicePriceText: {
+    top: -25,
     color: colors.primary,
     fontWeight: '600',
     textAlign: 'center',
+    fontSize: 18,
+  },
+  bestChoicesItemIcon: {
+    top: -10,
+    backgroundColor: colors.white,
+    borderRadius: 25,
+    alignSelf: 'center',
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FFD3D3',
+    shadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    shadowOpacity: 0.5,
+    shadowRadius: 2,
+    elevation: 15,
+  },
+  businessName: {
+    top: -15,
+    width: '60%',
+    fontWeight: '600',
+    fontSize: 18,
+    fontFamily: 'Bai Jamjuree',
+    lineHeight: 20,
+    textAlign: 'center',
+    color: colors.tertiary,
   },
   todaySpecailContainer: {
     flexDirection: 'column',
@@ -715,12 +770,60 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     color: colors.primary,
   },
-  businessName: {
+  todaySpecialsbusinessName: {
     fontSize: 18,
     color: '#A2A3A5',
-    marginTop: 5,
     textAlign: 'left',
     lineHeight: 40,
   },
-  restuarentNearByContainer: {},
+  restuarentName: {
+    fontSize: 20,
+    fontWeight: '600',
+    lineHeight: 40,
+    color: colors.tertiary,
+  },
+  distance: {
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 20,
+    color: colors.red,
+    marginRight: 20,
+  },
+  restuarentAddress: {
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 20,
+    color: '#A2A3A5',
+  },
+  restuarentNearByContainer: {
+    padding: 10,
+    margin: 0,
+  },
+  restuarentNearByItem: {
+    padding: 0,
+    margin: 0,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginHorizontal: 10,
+    width: 290,
+    height: 270,
+    borderRadius: 15,
+    marginBottom: 20,
+    backgroundColor: colors.white,
+    shadowColor: '#000000',
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  restuarentImage: {
+    top: -13,
+    width: '100%',
+    height: '60%',
+    resizeMode: 'cover',
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+    backgroundColor: colors.green,
+  },
+  restuarentDetailsContainer: {
+    paddingHorizontal: 10,
+  },
 });

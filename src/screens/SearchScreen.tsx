@@ -17,14 +17,16 @@ import {
   responsiveWidth,
 } from 'react-native-responsive-dimensions';
 import apiConfig from '../config/apiConfig';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useSelector} from 'react-redux';
+import {RootState} from '../redux/store';
+import {SearchScreenNavigationProp} from '../types/navigationProps';
+import {TodaySpecial} from '../types/commonTypes';
 
 interface productT {
   _id: string;
   businessId: string;
   category: string;
   categoryId: string;
-  // createdAt: '2024-10-18T12:58:45.747Z',
   description: string;
   images: [string];
   isActive: boolean;
@@ -38,65 +40,38 @@ interface productT {
   specialDayDate?: null;
   subCategory?: string;
   units?: string | number;
-  // updatedAt: '2024-10-18T12:58:45.747Z',
-  weight?: 30;
+  weight?: number;
+  discountPrice: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export default function SearchScreen() {
+export default function SearchScreen({
+  navigation,
+}: {
+  navigation: SearchScreenNavigationProp;
+}) {
   const [search, setSearch] = useState('');
+  const [products, setProducts] = useState<TodaySpecial[]>([]);
   const [searchList, setSearchList] = useState<[]>([]);
-  const [products, setProducts] = useState<productT[]>([]);
-  let token: string | null = null;
+  const token = useSelector((state: RootState) => state.authSlice.jwtToken);
   const handleClearSearch = () => {
     setSearch('');
   };
 
   useEffect(() => {
-    fetchRecentSearches();
-  }, []);
-
-  useEffect(() => {
     getAllProducts();
-  }, [search]);
-
-  const handleSearch = async () => {
-    try {
-      const user = await AsyncStorage.getItem('user');
-      const parsedUser = JSON.parse(user || '{}');
-      const {jwtToken} = parsedUser;
-      token = jwtToken;
-      const response = await fetch(
-        apiConfig.CREATE_SEARCH_URL + `?search=${search}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            authorization: jwtToken,
-          },
-        },
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        Alert.alert('error', data.error.error);
-      }
-      fetchRecentSearches();
-      getAllProducts();
-      setSearch('');
-    } catch (error) {
-      console.log(error);
-    }
-  };
+    fetchRecentSearches();
+    setSearch('');
+  }, []);
 
   const fetchRecentSearches = async () => {
     try {
-      const user = await AsyncStorage.getItem('user');
-      const parsedUser = JSON.parse(user || '{}');
-      const {jwtToken} = parsedUser;
       const response = await fetch(apiConfig.GET_RECENT_SEARCH_URL, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          authorization: jwtToken,
+          authorization: token,
         },
       });
       const data = await response.json();
@@ -110,19 +85,38 @@ export default function SearchScreen() {
     }
   };
 
+  const handleSearch = async () => {
+    try {
+      const response = await fetch(
+        apiConfig.CREATE_SEARCH_URL + `?search=${search}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: token,
+          },
+        },
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        Alert.alert('error', data.error.error);
+      }
+      console.log(data, 'data');
+      getAllProducts();
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const getAllProducts = async () => {
     try {
-      const user = await AsyncStorage.getItem('user');
-      const parsedUser = JSON.parse(user || '{}');
-      const {jwtToken} = parsedUser;
-      console.log(search, 'search');
       const response = await fetch(
         apiConfig.GET_ALL_PRODUCTS_URL + `/?findByName=${search}`,
         {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            authorization: jwtToken,
+            authorization: token,
           },
         },
       );
@@ -144,17 +138,22 @@ export default function SearchScreen() {
     );
   };
 
-  const renderProducts = ({item}: {item: productT}) => {
+  const handleProduct = (item: TodaySpecial) => {
+    navigation.navigate('ProductDetailScreen', {item: item});
+  };
+  const renderProducts = ({item}: {item: TodaySpecial}) => {
     return (
       <>
         {item.images[0] && (
-          <TouchableOpacity style={styles.productListContainer}>
+          <TouchableOpacity
+            style={styles.productListContainer}
+            onPress={() => handleProduct(item)}>
             <Image
               source={{
                 uri: `${apiConfig.GET_IMAGES_BY_ID}/${item.images[0]}`,
               }}
               style={styles.productImage}
-              resizeMode="cover"
+              resizeMode="stretch"
             />
             <Text style={styles.productName}>{item.name}</Text>
           </TouchableOpacity>
@@ -209,9 +208,8 @@ export default function SearchScreen() {
           keyExtractor={item => item._id}
           contentContainerStyle={styles.productListContent}
           showsVerticalScrollIndicator={false}
-          // ListEmptyComponent={() => (
-          //   <Text style={styles.emptyText}>No products found</Text>
-          // )}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
         />
       </View>
     </View>
@@ -301,7 +299,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     marginBottom: 16,
-    padding: 12,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,

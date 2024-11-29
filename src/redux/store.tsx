@@ -5,6 +5,7 @@ import bestChoicesSlice from './bestChoicesSlice';
 import todaySpecials from './todaySpecialSlice';
 import restaurentSlice from './nearRestaurentSlice';
 import homeSlice from './homeSlice';
+import bestOfferSlice from './bestOffersSlice';
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     bestChoicesSlice: bestChoicesSlice,
     todaySpecialSlice: todaySpecials,
     restaurentSlice: restaurentSlice,
+    bestOfferSlice: bestOfferSlice,
   },
 });
 

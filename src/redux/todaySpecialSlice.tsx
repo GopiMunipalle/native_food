@@ -22,12 +22,12 @@ export const fetchTodaySpecials = createAsyncThunk(
         Alert.alert('Error TodaySpecials', data.error.error);
         return rejectWithValue(data.error.error);
       }
-      let products;
-      if (data.data.product.length < 5) {
-        products = data.data.product;
-      }
-      products = data.data.product.slice(0, 5);
-      return products;
+      // let products;
+      // if (data.data.product.length < 5) {
+      //   products = data.data.product;
+      // }
+      // products = data.data.product.slice(0, 5);
+      return data.data.product;
     } catch (error: any) {
       Alert.alert('Error', error.message);
       return rejectWithValue(error.message);

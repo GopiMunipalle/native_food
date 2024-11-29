@@ -10,4 +10,5 @@ export const colors = {
   green: '#94CD00',
   lightTextColor: '#F2F2F2',
   greenButton: '#94CD00',
+  lightGrey: '#A2A3A5',
 };
